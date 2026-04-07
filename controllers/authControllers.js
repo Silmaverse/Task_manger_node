@@ -1,40 +1,69 @@
-const { isvalidateEmail } = require("../helpers/utils")
-const user = require("../models/authSchema")
+const { mailSender } = require("../helpers/mailService");
+const { isvalidateEmail, generateNodeOTP } = require("../helpers/utils");
+const user = require("../models/authSchema");
 
-const registration =async(req,res)=>{
-    console.log(req.body)
-    const {fullname , email , password}=req.body
+const registration = async (req, res) => {
+  const { fullname, email, password } = req.body;
 
-    try{
-      
-      if(!fullname?.trim()) return res.status(400).send({message:"Fullname is required"})
-      if(!email) return res.status(400).send({message:"Email is required"})
-      if(!isvalidateEmail) return res.status(400).send({message:"Email is invalid"})
-      if(!password) return res.status(400).send({message:"Password is required"});
+  try {
+    if (!fullname?.trim())
+      return res.status(400).send({ message: "Fullname is required" });
+    if (!email) return res.status(400).send({ message: "Email is required" });
+    if (!isvalidateEmail)
+      return res.status(400).send({ message: "Email is invalid" });
+    if (!password)
+      return res.status(400).send({ message: "Password is required" });
+    const existingemail = await user.findOne({ email });
+    console.log(existingemail)
+    if(existingemail) return res.status(400).send({message:"This email is alreday registered"})
+    let trimeedfullname = fullname.split(" ").join("");
+    const otp_num = generateNodeOTP();
+    const newuser = new user({
+      fullname: trimeedfullname,
+      email,
+      password,
+      otp: otp_num,
+      otpExpiry: Date.now() + 5 * 60 * 1000,
+    });
+    await newuser.save();
+    await mailSender({ email, subject: "OTP Verfication Mail", otp: otp_num });
 
-      const existingemail= await user.findOne({email})
-      console.log(existingemail)
-      if(existingemail) return res.status(400).send({message:"This email is alreday registered"})
-      let trimeedfullname=fullname.split(' ').join('');
-      const newuser= new user({fullname:trimeedfullname , email , password})
-      console.log(newuser)
-      console.log(user)
-      await newuser.save()
+    res.status(200).send("Regsitration successfull");
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Internal server error");
+  }
+};
 
-      res.status(200).send("Regsitration successfull")
-    }catch(err){
-      console.log(err)
-      res.status(500).send('Internal server error')
-    }
-}
+const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const existinnguser = await user.findOneAndUpdate({
+      email,
+      otp,
+      otpExpiry: { $lt: Date.now()},
+    },{isVerified:true,otp:null},{returnDocument:true});
+    if(!existinnguser) return res.status(400).send({message:"Inavlid request"})
+    return res.status(400).send({message:"Email verified successfully"})
+  } catch (error) {
+    console.log(err);
+    res.status(500).send("Internal server error")
+  }
+};
 
-const login =(req,res)=>{
-    try{
-      res.status(200).send("Login successfully")
-    }catch(err){
-        console.log(err)
-    }
-}
+const login = async(req, res) => {
+  const {email,password}=req.body;
+  try {
+    const isuser=await user.findOne({email})
+    if(!isuser) return res.status(400).send({message:"Invalid credentials"})
+    if(!isuser.isVerified) return res.status(400).send({message:"Email is not verified"})
+    const match=await user.comparePassword(password,isuser.password)
+    if(!match) return res.status(400).send("Inavlid credentials")
 
+    res.status(200).send("Login successfully");
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-module.exports={login,registration}
+module.exports = { login, registration, verifyOtp };
