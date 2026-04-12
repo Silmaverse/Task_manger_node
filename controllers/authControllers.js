@@ -1,5 +1,5 @@
 const { mailSender } = require("../helpers/mailService");
-const { isvalidateEmail, generateNodeOTP } = require("../helpers/utils");
+const { isvalidateEmail, generateNodeOTP, generateaccessToken } = require("../helpers/utils");
 const user = require("../models/authSchema");
 
 const registration = async (req, res) => {
@@ -59,6 +59,9 @@ const login = async(req, res) => {
     if(!isuser.isVerified) return res.status(400).send({message:"Email is not verified"})
     const match=await user.comparePassword(password,isuser.password)
     if(!match) return res.status(400).send("Inavlid credentials")
+    const accessToken=generateaccessToken({_id:isuser.id,email:isuser.email});
+    console.log(accessToken);
+    res.cookie("accessToken",accessToken);
 
     res.status(200).send("Login successfully");
   } catch (err) {
@@ -66,4 +69,18 @@ const login = async(req, res) => {
   }
 };
 
-module.exports = { login, registration, verifyOtp };
+const userProfile=async(req,res)=>{
+    try{
+      const userdata=await user.findOne({_id:req.user._id}).select("avatar email fullname")
+      if(!userdata){
+        return res.status(404).send({message:"User not found"})
+      }
+
+      res.status(200).send(userdata)
+
+    }catch(err){
+      console.log(err)
+    }
+}
+
+module.exports = { login, registration, verifyOtp,userProfile };
