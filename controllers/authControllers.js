@@ -1,8 +1,13 @@
 const { mailSender } = require("../helpers/mailService");
-const { isvalidateEmail, generateNodeOTP, generateaccessToken } = require("../helpers/utils");
+const {
+  isvalidateEmail,
+  generateNodeOTP,
+  generateaccessToken,
+} = require("../helpers/utils");
 const user = require("../models/authSchema");
-const bcrypt = require('bcrypt');
-
+const bcrypt = require("bcrypt");
+const cloudinary = require("../configs/cloudinaryService");
+const { uploadToCloudinary } = require("../helpers/cloudinaryService");
 
 const registration = async (req, res) => {
   const { fullname, email, password } = req.body;
@@ -16,8 +21,11 @@ const registration = async (req, res) => {
     if (!password)
       return res.status(400).send({ message: "Password is required" });
     const existingemail = await user.findOne({ email });
-    console.log(existingemail)
-    if(existingemail) return res.status(400).send({message:"This email is alreday registered"})
+    console.log(existingemail);
+    if (existingemail)
+      return res
+        .status(400)
+        .send({ message: "This email is alreday registered" });
     let trimeedfullname = fullname.split(" ").join("");
     const otp_num = generateNodeOTP();
     const newuser = new user({
@@ -40,30 +48,40 @@ const registration = async (req, res) => {
 const verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
   try {
-    const existinnguser = await user.findOneAndUpdate({
-      email,
-      otp,
-      otpExpiry: { $lt: Date.now()},
-    },{isVerified:true,otp:null},{returnDocument:true});
-    if(!existinnguser) return res.status(400).send({message:"Inavlid request"})
-    return res.status(200).send({message:"Email verified successfully"})
+    const existinnguser = await user.findOneAndUpdate(
+      {
+        email,
+        otp,
+        otpExpiry: { $lt: Date.now() },
+      },
+      { isVerified: true, otp: null },
+      { returnDocument: true },
+    );
+    if (!existinnguser)
+      return res.status(400).send({ message: "Inavlid request" });
+    return res.status(200).send({ message: "Email verified successfully" });
   } catch (error) {
     console.log(err);
-    res.status(500).send("Internal server error")
+    res.status(500).send("Internal server error");
   }
 };
 
-const login = async(req, res) => {
-  const {email,password}=req.body;
+const login = async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const isuser=await user.findOne({email})
-    if(!isuser) return res.status(400).send({message:"Invalid credentials"})
-    if(!isuser.isVerified) return res.status(400).send({message:"Email is not verified"})
-    const match=await comparePassword(password,isuser.password)
-    if(!match) return res.status(400).send("Inavlid credentials")
-    const accessToken=generateaccessToken({_id:isuser.id,email:isuser.email});
+    const isuser = await user.findOne({ email });
+    if (!isuser)
+      return res.status(400).send({ message: "Invalid credentials" });
+    if (!isuser.isVerified)
+      return res.status(400).send({ message: "Email is not verified" });
+    const match = await isuser.comparePassword(password, isuser.password);
+    if (!match) return res.status(400).send("Inavlid credentials");
+    const accessToken = generateaccessToken({
+      _id: isuser.id,
+      email: isuser.email,
+    });
     console.log(accessToken);
-    res.cookie("accessToken",accessToken);
+    res.cookie("accessToken", accessToken);
 
     res.status(200).send("Login successfully");
   } catch (err) {
@@ -71,30 +89,35 @@ const login = async(req, res) => {
   }
 };
 
-const userProfile=async(req,res)=>{
-    try{
-      const userdata=await user.findOne({_id:req.user._id}).select("avatar email fullname")
-      if(!userdata){
-        return res.status(404).send({message:"User not found"})
-      }
-
-      res.status(200).send(userdata)
-
-    }catch(err){
-      console.log(err)
+const userProfile = async (req, res) => {
+  try {
+    const userdata = await user
+      .findOne({ _id: req.user._id })
+      .select("avatar email fullname");
+    if (!userdata) {
+      return res.status(404).send({ message: "User not found" });
     }
-}
 
-const updateProfile= async(req,res)=>{
-   const{fullname}=req.body;
-   const userId=req.user._id;
-   try{
-     console.log(req.file)
-     res.status(200).send("Update profile Route");
-   }catch(err){
-     console.log(err)
-   }
-}
+    res.status(200).send(userdata);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
+const updateProfile = async (req, res) => {
+  const { fullname } = req.body;
+  const userId = req.user._id;
+  console.log(req.file)
+  try {
+    
+    const avatrurl = await uploadToCloudinary({
+      mimetype: req.file.mimetype,
+      imageBuffer: req.file.buffer,
+    });
+    res.send(avatrurl.secure_url);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
-module.exports = { login, registration, verifyOtp,userProfile ,updateProfile};
+module.exports = { login, registration, verifyOtp, userProfile, updateProfile };

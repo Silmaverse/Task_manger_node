@@ -1,6 +1,7 @@
 const express= require('express')
 const router=express.Router()
-const upload =require("../helpers/multerService")
+const multer=require("multer");
+const upload =multer()
 const {login, registration, verifyOtp, userProfile, updateProfile}= require("../controllers/authControllers")
 const { authMiddleware } = require('../middleware/authmiddleware')
 
