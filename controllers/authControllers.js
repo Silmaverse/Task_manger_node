@@ -1,6 +1,8 @@
 const { mailSender } = require("../helpers/mailService");
 const { isvalidateEmail, generateNodeOTP, generateaccessToken } = require("../helpers/utils");
 const user = require("../models/authSchema");
+const bcrypt = require('bcrypt');
+
 
 const registration = async (req, res) => {
   const { fullname, email, password } = req.body;
@@ -44,7 +46,7 @@ const verifyOtp = async (req, res) => {
       otpExpiry: { $lt: Date.now()},
     },{isVerified:true,otp:null},{returnDocument:true});
     if(!existinnguser) return res.status(400).send({message:"Inavlid request"})
-    return res.status(400).send({message:"Email verified successfully"})
+    return res.status(200).send({message:"Email verified successfully"})
   } catch (error) {
     console.log(err);
     res.status(500).send("Internal server error")
@@ -57,7 +59,7 @@ const login = async(req, res) => {
     const isuser=await user.findOne({email})
     if(!isuser) return res.status(400).send({message:"Invalid credentials"})
     if(!isuser.isVerified) return res.status(400).send({message:"Email is not verified"})
-    const match=await user.comparePassword(password,isuser.password)
+    const match=await comparePassword(password,isuser.password)
     if(!match) return res.status(400).send("Inavlid credentials")
     const accessToken=generateaccessToken({_id:isuser.id,email:isuser.email});
     console.log(accessToken);
@@ -83,4 +85,16 @@ const userProfile=async(req,res)=>{
     }
 }
 
-module.exports = { login, registration, verifyOtp,userProfile };
+const updateProfile= async(req,res)=>{
+   const{fullname}=req.body;
+   const userId=req.user._id;
+   try{
+     console.log(req.file)
+     res.status(200).send("Update profile Route");
+   }catch(err){
+     console.log(err)
+   }
+}
+
+
+module.exports = { login, registration, verifyOtp,userProfile ,updateProfile};

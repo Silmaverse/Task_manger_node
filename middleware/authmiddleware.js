@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 
-const {authMiddleware} =(req,res,next)=>{
+const authMiddleware =(req,res,next)=>{
     try{
       const {accessToken} =req.cookies;
       const decoded=jwt.verify(accessToken,process.env.JWT_SECRET_KEY);

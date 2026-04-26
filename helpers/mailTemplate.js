@@ -22,7 +22,7 @@ const OTPMailTemp= (otp)=>{
 
         <div style="font-size:28px; font-weight:bold; letter-spacing:5px; 
                     background:#f2f2f2; padding:15px; display:inline-block; border-radius:5px;">
-          {${otp}
+          ${otp}
         </div>
 
         <p style="font-size:14px; margin-top:25px; color:#777;">
