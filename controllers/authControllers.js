@@ -7,7 +7,7 @@ const {
 const user = require("../models/authSchema");
 const bcrypt = require("bcrypt");
 const cloudinary = require("../configs/cloudinaryService");
-const { uploadToCloudinary } = require("../helpers/cloudinaryService");
+const { uploadToCloudinary, destroyFromCloudinary } = require("../helpers/cloudinaryService");
 
 const registration = async (req, res) => {
   const { fullname, email, password } = req.body;
@@ -107,14 +107,22 @@ const userProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   const { fullname } = req.body;
   const userId = req.user._id;
-  console.log(req.file)
   try {
-    
-    const avatrurl = await uploadToCloudinary({
-      mimetype: req.file.mimetype,
-      imageBuffer: req.file.buffer,
-    });
-    res.send(avatrurl.secure_url);
+    const userdata=await user.findOne({_id:userId})
+    if(!userdata) return res.status(404).send({message:"User not found"})
+    if(fullname.trim()) userdata.fullname=fullname
+    if (req.file) {
+      const avatrurl = await uploadToCloudinary({
+        mimetype: req.file.mimetype,
+        imageBuffer: req.file.buffer,
+      });
+      if(userdata.avatar){
+        destroyFromCloudinary(userdata.avatar);
+      }
+      userdata.avatar =avatrurl.secure_url;
+    }
+    await userdata.save();
+    res.status(200).send({messgae:"Profile updated successfully"});
   } catch (err) {
     console.log(err);
   }

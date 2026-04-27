@@ -8,7 +8,6 @@ const main = require("./configs/dbCofig");
 main();
 app.use(cookieParser())
 app.use(express.json());
-
 app.use(route);
 
 app.listen(port, () => {

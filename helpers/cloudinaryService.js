@@ -1,8 +1,21 @@
 const cloudinary = require("../configs/cloudinaryService");
 
-const uploadToCloudinary = async({ mimetype, imageBuffer }) => {
+const uploadToCloudinary = async ({ mimetype, imageBuffer }) => {
   const dataUri = `data:${mimetype};base64,${imageBuffer.toString("base64")}`;
-  return await cloudinary.uploader.upload(dataUri);
+  const result = await cloudinary.uploader.upload(dataUri);
+  return result;
 };
 
-module.exports = { uploadToCloudinary };
+const destroyFromCloudinary = (url) => {
+  let publicid = url.split("/").pop().split(".").shift();
+  console.log(publicid);
+  cloudinary.uploader
+    .destroy(publicid, { invalidate: true })
+    .then((result) => {
+      if(result){
+        console.log("Clodinary result:",result)
+      }
+    });
+};
+
+module.exports = { uploadToCloudinary, destroyFromCloudinary };
