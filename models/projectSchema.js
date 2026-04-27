@@ -40,6 +40,10 @@ const projectSchema = mongoose.Schema({
     required: true,
     trim: true,
   },
+  slug:{
+     type:String,
+     required:true,
+  },
   author: {
     type: mongoose.Types.ObjectId,
     ref: "user",
