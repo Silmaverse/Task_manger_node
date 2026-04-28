@@ -54,17 +54,17 @@ const addTeamMemberToProject = async (req, res) => {
     if (!existemail)
       return res.status(400).send({ message: "Email not exist" });
     const existmember = await projectSchema.findOne({
+      _id:projectId,
       $or: [
         {
-          author:existemail._id
+          author: existemail._id,
         },
         {
           members: existemail._id,
-
         },
       ],
     });
-    if (!existmember)
+    if (existmember)
       return res.status(400).send({ message: "This member already exist" });
     const project = await projectSchema.findOneAndUpdate(
       { _id: projectId },
@@ -79,4 +79,51 @@ const addTeamMemberToProject = async (req, res) => {
   }
 };
 
-module.exports = { createProject, projectList, addTeamMemberToProject };
+const addTaskToProject = async (req, res) => {
+  const { title, description, priority, assignedTo, projectId } = req.body;
+
+  try {
+    if (!title)
+      return res.status(400).send({ message: "Task title is required" });
+
+    if (!description)
+      return res.status(400).send({ message: "Task description is required" });
+
+    if (!priority)
+      return res.status(400).send({ message: "Task priority is required" });
+
+    if (!["mid", "low", "high"].includes(priority))
+      return res.status(400).send({ message: "Invalid priority value" });
+
+
+    if(assignedTo && !Array.isArray(assignedTo)) return res.status(400).send({message:"Invalid assigned data"})
+
+    if(assignedTo) {
+       for(let userId of assignedTo){
+         const existmember=await projectSchema.findOne({
+           _id:projectId,
+           $or:[{author:userId},{members:userId}],
+         }) ;
+         if(!existmember) return res.status(400).send({message:"Inavlid user"});
+       }
+    }  
+
+    const projectData = await projectSchema.findOneAndUpdate(
+      { _id: projectId },
+      {tasks:{ title, description, priority, assignedTo, projectId }},
+      {members:assignedTo},
+      { return: true },
+    );
+
+    if (!projectId)
+      return res.status(400).send({ message: "Project not found" });
+
+    return res.status(200).send({message:"Task created successfully",projectData})
+
+  } catch (err) {
+     console.log(err)
+ 
+  }
+};
+
+module.exports = { createProject, projectList, addTeamMemberToProject,addTaskToProject };
