@@ -38,10 +38,10 @@ const registration = async (req, res) => {
     await newuser.save();
     await mailSender({ email, subject: "OTP Verfication Mail", otp: otp_num });
 
-    res.status(200).send("Regsitration successfull");
+    res.status(200).send({msg:"Regsitration successfull"});
   } catch (err) {
     console.log(err);
-    res.status(500).send("Internal server error");
+    res.status(500).send({msg:"Internal server error"});
   }
 };
 
