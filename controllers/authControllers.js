@@ -14,18 +14,18 @@ const registration = async (req, res) => {
 
   try {
     if (!fullname?.trim())
-      return res.status(400).send({ message: "Fullname is required" });
-    if (!email) return res.status(400).send({ message: "Email is required" });
+      return res.status(400).send({ message: "Fullname is required",field:"Fullname" });
+    if (!email) return res.status(400).send({ message: "Email is required",field:"email" });
     if (!isvalidateEmail)
-      return res.status(400).send({ message: "Email is invalid" });
+      return res.status(400).send({ message: "Email is invalid",field:"email" });
     if (!password)
-      return res.status(400).send({ message: "Password is required" });
+      return res.status(400).send({ message: "Password is required",field:"password" });
     const existingemail = await user.findOne({ email });
     console.log(existingemail);
     if (existingemail)
       return res
         .status(400)
-        .send({ message: "This email is alreday registered" });
+        .send({ message: "This email is alreday registered",field:"email" });
     let trimeedfullname = fullname.split(" ").join("");
     const otp_num = generateNodeOTP();
     const newuser = new user({
@@ -62,7 +62,7 @@ const verifyOtp = async (req, res) => {
     return res.status(200).send({ message: "Email verified successfully" });
   } catch (error) {
     console.log(err);
-    res.status(500).send("Internal server error");
+    res.status(500).send({message:"Internal server error"});
   }
 };
 
@@ -71,11 +71,11 @@ const login = async (req, res) => {
   try {
     const isuser = await user.findOne({ email });
     if (!isuser)
-      return res.status(400).send({ message: "Invalid credentials" });
+      return res.status(400).send({ message: "Invalid credentials" ,field:"email"});
     if (!isuser.isVerified)
-      return res.status(400).send({ message: "Email is not verified" });
+      return res.status(400).send({ message: "Email is not verified",field:"email" });
     const match = await isuser.comparePassword(password, isuser.password);
-    if (!match) return res.status(400).send("Inavlid credentials");
+    if (!match) return res.status(400).send({message:"Inavlid credentials",field:"password"});
     const accessToken = generateaccessToken({
       _id: isuser.id,
       email: isuser.email,
@@ -83,7 +83,7 @@ const login = async (req, res) => {
     console.log(accessToken);
     res.cookie("accessToken", accessToken);
 
-    res.status(200).send("Login successfully");
+    res.status(200).send({ success:true,message:"Login successfully"});
   } catch (err) {
     console.log(err);
   }
