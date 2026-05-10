@@ -52,7 +52,7 @@ const verifyOtp = async (req, res) => {
       {
         email,
         otp,
-        otpExpiry: { $lt: Date.now() },
+        otpExpiry: { $gt: Date.now() },
       },
       { isVerified: true, otp: null },
       { returnDocument: true },
