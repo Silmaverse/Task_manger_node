@@ -54,13 +54,13 @@ const addTeamMemberToProject = async (req, res) => {
     if (!existemail)
       return res.status(400).send({ message: "Email not exist" });
     const existmember = await projectSchema.findOne({
-      _id:projectId,
+      _id: projectId,
       $or: [
         {
           author: existemail._id,
         },
         {
-          members: existemail._id,
+          $addToSet :{members: existemail._id},
         },
       ],
     });
@@ -92,38 +92,69 @@ const addTaskToProject = async (req, res) => {
     if (!priority)
       return res.status(400).send({ message: "Task priority is required" });
 
-    if (!["mid", "low", "high"].includes(priority))
+    if (!["medium", "low", "high"].includes(priority))
       return res.status(400).send({ message: "Invalid priority value" });
 
+    if (assignedTo && !Array.isArray(assignedTo))
+      return res.status(400).send({ message: "Invalid assigned data" });
 
-    if(assignedTo && !Array.isArray(assignedTo)) return res.status(400).send({message:"Invalid assigned data"})
-
-    if(assignedTo) {
-       for(let userId of assignedTo){
-         const existmember=await projectSchema.findOne({
-           _id:projectId,
-           $or:[{author:userId},{members:userId}],
-         }) ;
-         if(!existmember) return res.status(400).send({message:"Inavlid user"});
-       }
-    }  
+    if (assignedTo) {
+      for (let userId of assignedTo) {
+        const existmember = await projectSchema.findOne({
+          _id: projectId,
+          $or: [{ author: userId }, { members: userId }],
+        });
+        if (!existmember)
+          return res.status(400).send({ message: "Inavlid user" });
+      }
+    }
 
     const projectData = await projectSchema.findOneAndUpdate(
       { _id: projectId },
-      {tasks:{ title, description, priority, assignedTo, projectId }},
-      {members:assignedTo},
+      {
+        $push: {
+          tasks: { title, description, priority, assignedTo, projectId },
+        },
+      },
+      { members: assignedTo },
       { return: true },
     );
 
     if (!projectId)
       return res.status(400).send({ message: "Project not found" });
 
-    return res.status(200).send({message:"Task created successfully",projectData})
-
+    return res
+      .status(200)
+      .send({ message: "Task created successfully", projectData });
   } catch (err) {
-     console.log(err)
- 
+    console.log(err);
   }
 };
 
-module.exports = { createProject, projectList, addTeamMemberToProject,addTaskToProject };
+const addSubTasks = async (req, res) => {
+  const { title,taskId,projectId } = req.body;
+  if (!title) return res.status(400).send({ message: "Title is required" });
+
+  const project= await projectSchema.findOne(
+     {
+      id:projectId,
+      "tasks._id":taskId
+     },
+     {
+      $push:{
+        "tasks.$.subtasks":{title}
+      }
+     },
+     { new:true}
+
+  )
+  res.status(200).send(project)
+};
+
+module.exports = {
+  createProject,
+  projectList,
+  addTeamMemberToProject,
+  addTaskToProject,
+  addSubTasks
+};

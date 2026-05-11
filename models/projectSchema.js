@@ -1,5 +1,16 @@
 const mongoose = require("mongoose");
 
+const subtaskSchema=new mongoose.Schema({
+   
+   title:String,
+
+   isCompleted:{
+     type:Boolean,
+     default:false
+   }
+
+})
+
 const taskSchema = mongoose.Schema({
   title: {
     type: String,
@@ -10,6 +21,12 @@ const taskSchema = mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+  },
+  status:{
+    type:String,
+    enum:["Planning","Processing","Completed"],
+    default:"Planning"
+
   },
   priority:{
      type:String,
@@ -25,9 +42,16 @@ const taskSchema = mongoose.Schema({
   isComplete:{
     type:Boolean,
     default:false,
-  }
+  },
+  progress:{
+    type:Number,
+    default:0
+  },
+  subtasks:[subtaskSchema]
 
 });
+
+
 
 const projectSchema = mongoose.Schema({
   title: {
